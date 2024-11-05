@@ -76,4 +76,22 @@ CommandBar.Focus = function()
 	CommandBarInstance.CommandFieldHolder.Field.TextBox:CaptureFocus()
 end
 
+CommandBar.Show = function()
+	CommandBarInstance.Parent.Enabled = true
+end
+CommandBar.Hide = function()
+	CommandBarInstance.Parent.Enabled = false
+end
+CommandBar.Toggle = function()
+	CommandBarInstance.Parent.Enabled = not CommandBarInstance.Parent.Enabled
+end
+
+CommandBar.Clear = function()
+	for _, field in CommandBar.Fields do
+		field:Destroy()
+	end
+	table.clear(CommandBar.Fields)
+	CommandBar.OffSetX = 10
+end
+
 return CommandBar
