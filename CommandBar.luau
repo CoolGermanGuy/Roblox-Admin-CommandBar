@@ -42,47 +42,48 @@ CommandBar.AddField = function(fieldType: string)
 		newFieldInstance.TextLabel.Text = "cmd"
 		
 	elseif fieldType == FIELD_TYPES.Text["name"] then
-		newFieldInstance.Size = UDim2.new(0, 21*5 -14, 1, 0)
+		newFieldInstance.Size = UDim2.new(0, 21*5 +14, 1, 0)
 		newFieldInstance.TextLabel.Text = "text"
 		
 	elseif fieldType == FIELD_TYPES.Number["name"] then
-		newFieldInstance.Size = UDim2.new(0, 21*2 -14, 1, 0)
+		newFieldInstance.Size = UDim2.new(0, 21*2 +14, 1, 0)
 		newFieldInstance.TextLabel.Text = "num"
 		
 	elseif fieldType == FIELD_TYPES.Player["name"] then
-		newFieldInstance.Size = UDim2.new(0, 21*6 -14, 1, 0) -- !!replace 200 with size of smallest text available [Udim.new() + amountOfChars * 5]
+		newFieldInstance.Size = UDim2.new(0, 21*6 +14, 1, 0) -- !!replace 200 with size of smallest text available [Udim.new() + amountOfChars * 5]
 		newFieldInstance.TextLabel.Text = "player"
 	elseif fieldType == FIELD_TYPES.Decision["name"] then
-		newFieldInstance.Size = UDim2.new(0, 21*5 -14, 0, 0) -- !!replace 150 with size of smallest text available
+		newFieldInstance.Size = UDim2.new(0, 21*5 +14, 0, 0) -- !!replace 150 with size of smallest text available
 		newFieldInstance.TextLabel.Text = "?"
 	end
 	
-	OffSetX += newFieldInstance.Size.X.Offset + 15
+	OffSetX += newFieldInstance.Size.X.Offset + 10
 	
 	local newField = {
 		Instance = newFieldInstance,
 		value = "",
 		fieldType = fieldType,
-		originalSize = newFieldInstance.Size
+		originalSize = newFieldInstance.Size,
+		originalPosition = newFieldInstance.Position,
+		OffSetX = OffSetX
 	}
-	
 	table.insert(Fields, newField)
 	newFieldInstance.Parent = CommandBarInstance
 end
 
-CommandBar.UpdateOffSetX = function()
-	OffSetX = 10
+CommandBar.UpdateFieldPositions = function()
 	for index, field in Fields do
-		OffSetX += field.Instance.Size.X.Offset + 15
+		--OffSetX += field.Instance.Size.X.Offset + 15
 		if Fields[index + 1] then
-			Fields[index + 1].Position = UDim2.new(0, OffSetX, 0, 0)
+			Fields[index + 1].Instance.Position = UDim2.new(0, Fields[index].OffSetX + 20, 0, 0)
 		end
 	end
 end
 
 CommandBar.UpdateFieldSize = function(fieldNumber: number, newSize)
 	Fields[fieldNumber].Instance.Size = UDim2.new(0, newSize, 1, 0)
-	CommandBar.UpdateOffSetX()
+	Fields[fieldNumber].OffSetX = newSize
+	CommandBar.UpdateFieldPositions()
 end
 
 CommandBar.Focus = function(fieldNumber: number)
@@ -117,6 +118,7 @@ CommandBar.Clear = function()
 	end
 	table.clear(Fields)
 	OffSetX = 10
+	CommandBar.AddField("Command")
 end
 
 local keybinds = {
@@ -131,7 +133,6 @@ local keybinds = {
 		else -- not active
 			if isHoldingControl then
 				CommandBar.Clear()
-				CommandBar.AddField("Command")
 				currentField = 1
 			end
 			CommandBar.Show()
@@ -172,15 +173,20 @@ local keybinds = {
 		local fieldType = Fields[currentField].fieldType
 		local TextBoundsX = Fields[currentField].Instance.Field.TextFrame.TextLabel.TextBounds.X
 		
+		print(Fields[currentField].Instance.Field.TextFrame.TextLabel.Position.X.Offset)
+		print(Fields[currentField].originalPosition.X.Offset)
+		
 		if TextBoundsX < FIELD_TYPES[fieldType]["maxSize"] then -- textbounds < fieldsize
 			if TextBoundsX < Fields[currentField].Instance.Size.X.Offset then -- textbounds > fieldsize
+				
 				if TextBoundsX > Fields[currentField].originalSize.X.Offset - 28 then -- i have no idea why this works
-					--Fields[currentField].Instance.Size += UDim2.new(0, -21, 0, 0)
 					CommandBar.UpdateFieldSize(currentField, Fields[currentField].Instance.Size.X.Offset - 21)
 				end
 			end
-		else -- cant extend
-
+		end
+		
+		if Fields[currentField].Instance.Field.TextFrame.TextLabel.Position.X.Offset < Fields[currentField].originalPosition.X.Offset - 10 then
+			CommandBar.MoveFieldText(currentField, 21)
 		end
 	end,
 	[Enum.KeyCode.LeftShift] = function()
@@ -198,6 +204,11 @@ CommandBar.InputBegan = function(input, gameProcessed)
 	end
 end
 
+CommandBar.MoveFieldText = function(fieldNumber: number, amount: number)
+	local TextLabel = Fields[fieldNumber].Instance.Field.TextFrame.TextLabel
+	TextLabel.Position += UDim2.new(0, amount, 0, 0)
+end
+
 CommandBar.AddCharToText = function(char: string)
 	local fieldType = Fields[currentField].fieldType
 	local TextBoundsX = Fields[currentField].Instance.Field.TextFrame.TextLabel.TextBounds.X
@@ -211,11 +222,10 @@ CommandBar.AddCharToText = function(char: string)
 	
 	if TextBoundsX < FIELD_TYPES[fieldType]["maxSize"] then -- can extend
 		if TextBoundsX > Fields[currentField].Instance.Size.X.Offset - 28 then -- textbounds > fieldsize
-			--Fields[currentField].Instance.Size += UDim2.new(0, 21, 0, 0)
 			CommandBar.UpdateFieldSize(currentField, Fields[currentField].Instance.Size.X.Offset + 21)
 		end
-	else -- cant extend
-		
+	else
+		CommandBar.MoveFieldText(currentField, -21)
 	end
 end
 
