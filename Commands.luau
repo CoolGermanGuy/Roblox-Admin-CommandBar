@@ -72,9 +72,11 @@ CommandHandler.CommandData = {
 }
 
 -- // Commands Init \\
-for command, data in CommandHandler.CommandData do
-	CommandHandler.Commands[command] = data
-	for aliasIndex in data.aliases do
+for command, data in CommandHandler.CommandData do -- each ["command"]
+	CommandHandler.Commands[command] = data -- add ["command"]
+	for aliasIndex in data.aliases do -- each "alias"
+		--table.insert(newData.aliases, command)
+		-- !! add main command name to alias table and remove self alias from alias table
 		CommandHandler.Commands[data.aliases[aliasIndex]] = data
 	end
 end
