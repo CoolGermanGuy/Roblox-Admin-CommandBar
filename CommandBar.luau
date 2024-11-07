@@ -191,11 +191,19 @@ local keybinds = {
 		-- !! execute
 	end,
 	[Enum.KeyCode.Backspace] = function()
-		print(Fields[currentField])
-		
-		local newText = string.sub(Fields[currentField].value, 1, string.len(Fields[currentField].value) - 1)
-		Fields[currentField].value = newText
-		Fields[currentField].Instance.Field.TextFrame.TextLabel.Text = newText
+		if isHoldingControl then
+			Fields[currentField].value = ""
+			Fields[currentField].Instance.Field.TextFrame.TextLabel.Text = ""
+			Fields[currentField].Instance.Field.TextFrame.TextLabel.Size = UDim2.new(0, 0, 1, 0)
+			Fields[currentField].Instance.Field.TextFrame.TextLabel.Position = UDim2.new(0, 0, 0, 0)
+			Fields[currentField].Instance.Size = Fields[currentField].originalSize
+			CommandBar.UpdateFieldPositions()
+		else
+			local newText = string.sub(Fields[currentField].value, 1, string.len(Fields[currentField].value) - 1)
+			Fields[currentField].value = newText
+			Fields[currentField].Instance.Field.TextFrame.TextLabel.Text = newText
+			Fields[currentField].Instance.Field.TextFrame.TextLabel.Size += UDim2.new(0, -21, 0, 0)
+		end
 		
 		local fieldType = Fields[currentField].fieldType
 		local TextBoundsX = Fields[currentField].Instance.Field.TextFrame.TextLabel.TextBounds.X
@@ -235,7 +243,30 @@ end
 
 CommandBar.AddCharToText = function(char: string)
 	local fieldType = Fields[currentField].fieldType
+	
+	if fieldType == FIELD_TYPES.Command["name"] then
+		-- allow anything
+	elseif fieldType == FIELD_TYPES.Text["name"] then
+		-- allow anything
+
+	elseif fieldType == FIELD_TYPES.Number["name"] then
+		if tonumber(char) == nil then
+			task.spawn(function()
+				Fields[currentField].Instance.Field.UIStroke.Color = Color3.fromRGB(255, 0, 0)
+				task.wait(0.2)
+				Fields[currentField].Instance.Field.UIStroke.Color = Color3.fromRGB(0, 0, 0)
+			end)
+			return
+		end
+
+	elseif fieldType == FIELD_TYPES.Player["name"] then
+		-- allow anything !! remove special characters
+	elseif fieldType == FIELD_TYPES.Decision["name"] then
+		-- allow anything
+	end
+	
 	local TextBoundsX = Fields[currentField].Instance.Field.TextFrame.TextLabel.TextBounds.X
+	Fields[currentField].Instance.Field.TextFrame.TextLabel.Size += UDim2.new(0, 21, 0, 0)
 	
 	if not isHoldingShift then
 		char = char:lower()
