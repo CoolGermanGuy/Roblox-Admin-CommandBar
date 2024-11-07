@@ -15,12 +15,16 @@ local isActive = false
 local isHoldingControl = false
 local isHoldingShift = false
 
+local charSize = 21
+local padding = 10
+local extraOffset = 14
+
 local FIELD_TYPES = {
-	Command = {name = "Command", maxSize = 21*8 -14},
-	Text = {name = "Text", maxSize = 21*10 -14},
-	Number = {name = "Number", maxSize = 21*4 -14},
-	Player = {name = "Player", maxSize = 21*9 -14},
-	Decision = {name = "Decision", maxSize = 21*5 -14} -- dropdown
+	Command = {name = "Command", maxSize = charSize*8 -extraOffset},
+	Text = {name = "Text", maxSize = charSize*10 -extraOffset},
+	Number = {name = "Number", maxSize = charSize*4 -extraOffset},
+	Player = {name = "Player", maxSize = charSize*9 -extraOffset},
+	Decision = {name = "Decision", maxSize = charSize*5 -extraOffset} -- dropdown
 }
 
 -- // Functions \\
@@ -38,26 +42,26 @@ CommandBar.AddField = function(fieldType: string)
 	newFieldInstance.Name = fieldType.."FieldHolder"
 	
 	if fieldType == FIELD_TYPES.Command["name"] then
-		newFieldInstance.Size = UDim2.new(0, 21*3 +14, 1, 0)
+		newFieldInstance.Size = UDim2.new(0, charSize*3 +extraOffset, 1, 0)
 		newFieldInstance.TextLabel.Text = "cmd"
 		
 	elseif fieldType == FIELD_TYPES.Text["name"] then
-		newFieldInstance.Size = UDim2.new(0, 21*5 +14, 1, 0)
+		newFieldInstance.Size = UDim2.new(0, charSize*5 +extraOffset, 1, 0)
 		newFieldInstance.TextLabel.Text = "text"
 		
 	elseif fieldType == FIELD_TYPES.Number["name"] then
-		newFieldInstance.Size = UDim2.new(0, 21*2 +14, 1, 0)
+		newFieldInstance.Size = UDim2.new(0, charSize*2 +extraOffset, 1, 0)
 		newFieldInstance.TextLabel.Text = "num"
 		
 	elseif fieldType == FIELD_TYPES.Player["name"] then
-		newFieldInstance.Size = UDim2.new(0, 21*6 +14, 1, 0) -- !!replace 200 with size of smallest text available [Udim.new() + amountOfChars * 5]
+		newFieldInstance.Size = UDim2.new(0, charSize*6 +extraOffset, 1, 0) -- !!replace 200 with size of smallest text available [Udim.new() + amountOfChars * 5]
 		newFieldInstance.TextLabel.Text = "player"
 	elseif fieldType == FIELD_TYPES.Decision["name"] then
-		newFieldInstance.Size = UDim2.new(0, 21*5 +14, 0, 0) -- !!replace 150 with size of smallest text available
+		newFieldInstance.Size = UDim2.new(0, charSize*5 +extraOffset, 0, 0) -- !!replace 150 with size of smallest text available
 		newFieldInstance.TextLabel.Text = "?"
 	end
 	
-	OffSetX += newFieldInstance.Size.X.Offset + 10
+	OffSetX += newFieldInstance.Size.X.Offset + padding
 	
 	local newField = {
 		Instance = newFieldInstance,
@@ -71,20 +75,24 @@ CommandBar.AddField = function(fieldType: string)
 	newFieldInstance.Parent = CommandBarInstance
 end
 
-CommandBar.UpdateFieldPositions = function()
+CommandBar.UpdateFieldPositions = function() -- ChatGPT cuz I gave up (4 hours)
+	local cumulativeOffset = 10 -- Reset initial offset
+
 	for index, field in Fields do
-		--OffSetX += field.Instance.Size.X.Offset + 15
-		if Fields[index + 1] then
-			Fields[index + 1].Instance.Position = UDim2.new(0, Fields[index].OffSetX + 20, 0, 0)
-		end
+		field.Instance.Position = UDim2.new(0, cumulativeOffset, 0, 0)
+		field.OffSetX = cumulativeOffset
+
+		cumulativeOffset += field.Instance.Size.X.Offset + padding -- Add size and padding for next field
 	end
 end
 
-CommandBar.UpdateFieldSize = function(fieldNumber: number, newSize)
-	Fields[fieldNumber].Instance.Size = UDim2.new(0, newSize, 1, 0)
-	Fields[fieldNumber].OffSetX = newSize
+CommandBar.UpdateFieldSize = function(fieldNumber: number, amount: number)
+	Fields[fieldNumber].Instance.Size += UDim2.new(0, amount, 0, 0)
+	Fields[fieldNumber].OffSetX += amount
 	CommandBar.UpdateFieldPositions()
 end
+
+--currentField, Fields[currentField].Instance.Size.X.Offset + charSize
 
 CommandBar.Focus = function(fieldNumber: number)
 	if Fields[fieldNumber] then 
@@ -94,7 +102,10 @@ end
 
 CommandBar.ChangeActiveField = function(fieldNumber: number)
 	if Fields[fieldNumber] then
-		Fields[currentField].Instance.Field.UIStroke.Color = Color3.fromRGB(0, 0, 0) -- make old field black
+		for index, field in Fields do
+			field.Instance.Field.UIStroke.Color = Color3.fromRGB(0, 0, 0) -- make old field black
+		end
+		--Fields[currentField].Instance.Field.UIStroke.Color = Color3.fromRGB(0, 0, 0) -- make old field black
 		Fields[fieldNumber].Instance.Field.UIStroke.Color = Color3.fromRGB(255, 255, 255) -- make new field white
 		currentField = fieldNumber
 	end
@@ -144,16 +155,30 @@ local keybinds = {
 		if isHoldingControl then
 			-- !! move chars
 		else
-			CommandBar.Focus(currentField - 1)
-			CommandBar.ChangeActiveField(currentField - 1)
+			if currentField == 1 then -- if it's the first field 
+				local lastField
+				for index, field in Fields do
+					lastField = index
+				end
+				currentField = lastField
+			else
+				currentField -= 1
+			end
+			CommandBar.Focus(currentField)
+			CommandBar.ChangeActiveField(currentField)
 		end
 	end,
 	[Enum.KeyCode.Right] = function()
 		if isHoldingControl then
 			-- !! move chars
-		else
-			CommandBar.Focus(currentField + 1)
-			CommandBar.ChangeActiveField(currentField + 1)
+		else 
+			if Fields[currentField + 1] == nil then -- if it's the last field
+				currentField = 1
+			else
+				currentField += 1
+			end
+			--CommandBar.Focus(currentField)
+			CommandBar.ChangeActiveField(currentField)
 		end
 	end,
 	[Enum.KeyCode.Tab] = function()
@@ -166,6 +191,8 @@ local keybinds = {
 		-- !! execute
 	end,
 	[Enum.KeyCode.Backspace] = function()
+		print(Fields[currentField])
+		
 		local newText = string.sub(Fields[currentField].value, 1, string.len(Fields[currentField].value) - 1)
 		Fields[currentField].value = newText
 		Fields[currentField].Instance.Field.TextFrame.TextLabel.Text = newText
@@ -173,20 +200,17 @@ local keybinds = {
 		local fieldType = Fields[currentField].fieldType
 		local TextBoundsX = Fields[currentField].Instance.Field.TextFrame.TextLabel.TextBounds.X
 		
-		print(Fields[currentField].Instance.Field.TextFrame.TextLabel.Position.X.Offset)
-		print(Fields[currentField].originalPosition.X.Offset)
-		
 		if TextBoundsX < FIELD_TYPES[fieldType]["maxSize"] then -- textbounds < fieldsize
 			if TextBoundsX < Fields[currentField].Instance.Size.X.Offset then -- textbounds > fieldsize
 				
-				if TextBoundsX > Fields[currentField].originalSize.X.Offset - 28 then -- i have no idea why this works
-					CommandBar.UpdateFieldSize(currentField, Fields[currentField].Instance.Size.X.Offset - 21)
+				if Fields[currentField].Instance.Size.X.Offset > Fields[currentField].originalSize.X.Offset then -- i have no idea why this works
+					CommandBar.UpdateFieldSize(currentField, -charSize)
 				end
 			end
 		end
 		
-		if Fields[currentField].Instance.Field.TextFrame.TextLabel.Position.X.Offset < Fields[currentField].originalPosition.X.Offset - 10 then
-			CommandBar.MoveFieldText(currentField, 21)
+		if Fields[currentField].Instance.Field.TextFrame.TextLabel.Position.X.Offset < 0 then
+			CommandBar.MoveFieldText(currentField, charSize)
 		end
 	end,
 	[Enum.KeyCode.LeftShift] = function()
@@ -221,18 +245,18 @@ CommandBar.AddCharToText = function(char: string)
 	Fields[currentField].Instance.Field.TextFrame.TextLabel.Text = newText
 	
 	if TextBoundsX < FIELD_TYPES[fieldType]["maxSize"] then -- can extend
-		if TextBoundsX > Fields[currentField].Instance.Size.X.Offset - 28 then -- textbounds > fieldsize
-			CommandBar.UpdateFieldSize(currentField, Fields[currentField].Instance.Size.X.Offset + 21)
+		if TextBoundsX > Fields[currentField].Instance.Size.X.Offset - padding * 2 then -- textbounds > fieldsize
+			CommandBar.UpdateFieldSize(currentField, charSize)
 		end
 	else
-		CommandBar.MoveFieldText(currentField, -21)
+		CommandBar.MoveFieldText(currentField, -charSize)
 	end
 end
 
 CommandBar.InputEnded = function(input, gameProcessed)
 	if input.KeyCode and keybinds[input.KeyCode] then
 		keybinds[input.KeyCode]()
-	elseif isActive then
+	elseif isActive and input.UserInputType == Enum.UserInputType.Keyboard then
 		local char = UserInputService:GetStringForKeyCode(input.KeyCode)
 		CommandBar.AddCharToText(char)
 	end
